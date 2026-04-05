@@ -51,33 +51,42 @@ st.caption("Khám phá Kinh Thánh tự động từ thư viện DiscipleGen.com
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- CỘT BÊN TRÁI: DÀNH RIÊNG CHO BẠN (ADMIN) ---
+# --- CỘT BÊN TRÁI: KHU VỰC ADMIN (ĐÃ KHÓA BẢO MẬT) ---
 with st.sidebar:
     st.header("👑 Khu vực Admin")
-    st.markdown("Nhét kiến thức vào 'bộ não' của AI tại đây:")
     
-    link_moi = st.text_input("Dán link bài học Disciplegen:")
+    # Tạo ô nhập mật khẩu (nhập vào sẽ biến thành dấu sao ***)
+    mat_khau_nhap = st.text_input("Mật khẩu Admin:", type="password")
     
-    if st.button("Hút dữ liệu vào AI"):
-        if link_moi:
-            with st.spinner("Đang hút dữ liệu & chuyển thành Vector..."):
-                noi_dung = doc_website(link_moi)
-                if len(noi_dung) > 50:
-                    # Mã hóa bài viết thành số và cất vào két sắt
-                    id_bai_viet = f"bai_{ngan_tu_ai.count() + 1}"
-                    ngan_tu_ai.add(
-                        documents=[noi_dung],
-                        metadatas=[{"nguon": link_moi}],
-                        ids=[id_bai_viet]
-                    )
-                    st.success(f"Đã nạp bài học vào Két sắt! (Tổng số: {ngan_tu_ai.count()} bài)")
-                else:
-                    st.error("Không tìm thấy nội dung hoặc link bị lỗi.")
-        else:
-            st.warning("Vui lòng nhập link.")
-            
-    st.divider()
-    st.metric(label="📚 Dung lượng não bộ (Số bài đã học)", value=ngan_tu_ai.count())
+    # Kiểm tra mật khẩu
+    if mat_khau_nhap == st.secrets["ADMIN_PASSWORD"]:
+        st.success("Mở khóa thành công!")
+        st.markdown("Nhét kiến thức vào 'bộ não' của AI tại đây:")
+        
+        link_moi = st.text_input("Dán link bài học Disciplegen:")
+        
+        if st.button("Hút dữ liệu vào AI"):
+            if link_moi:
+                with st.spinner("Đang hút dữ liệu & chuyển thành Vector..."):
+                    noi_dung = doc_website(link_moi)
+                    if len(noi_dung) > 50:
+                        id_bai_viet = f"bai_{ngan_tu_ai.count() + 1}"
+                        ngan_tu_ai.add(
+                            documents=[noi_dung],
+                            metadatas=[{"nguon": link_moi}],
+                            ids=[id_bai_viet]
+                        )
+                        st.success(f"Đã nạp bài học! (Tổng số: {ngan_tu_ai.count()} bài)")
+                    else:
+                        st.error("Không tìm thấy nội dung hoặc link bị lỗi.")
+            else:
+                st.warning("Vui lòng nhập link.")
+                
+        st.divider()
+        st.metric(label="📚 Dung lượng não bộ", value=ngan_tu_ai.count())
+        
+    elif mat_khau_nhap != "":
+        st.error("Sai mật khẩu! Bạn không có quyền truy cập.")
 
 # --- CỘT BÊN PHẢI: KHUNG CHAT CHO NGƯỜI DÙNG ---
 for msg in st.session_state.messages:
