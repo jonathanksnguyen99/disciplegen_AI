@@ -41,6 +41,17 @@ def doc_website(url):
         return noi_dung
     except Exception as e:
         return ""
+# 4. HÀM ĐỌC SITEMAP (BẢN ĐỒ WEBSITE)
+def lay_link_tu_sitemap(url_sitemap):
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'} 
+        response = requests.get(url_sitemap, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # Tìm tất cả các thẻ <loc> chứa đường link trong sitemap
+        danh_sach_loc = soup.find_all('loc')
+        return [loc.get_text() for loc in danh_sach_loc]
+    except Exception as e:
+        return []
 
 # =========================================================
 # GIAO DIỆN WEB CHÍNH
@@ -84,6 +95,41 @@ with st.sidebar:
                 
         st.divider()
         st.metric(label="📚 Dung lượng não bộ", value=ngan_tu_ai.count())
+        # --- TÍNH NĂNG MỚI: HÚT TỰ ĐỘNG BẰNG SITEMAP ---
+        st.markdown("---")
+        st.markdown("🚀 **HÚT TOÀN BỘ WEBSITE**")
+        link_sitemap = st.text_input("Link Sitemap (Thường là: https://disciplegen.com/sitemap.xml):")
+        
+        if st.button("Kích hoạt Máy hút bụi"):
+            if link_sitemap:
+                danh_sach_link = lay_link_tu_sitemap(link_sitemap)
+                tong_so_link = len(danh_sach_link)
+                
+                if tong_so_link > 0:
+                    st.info(f"📍 Đã quét thấy {tong_so_link} đường link. Bắt đầu đọc...")
+                    thanh_tien_trinh = st.progress(0) # Tạo thanh chạy %
+                    
+                    so_bai_thanh_cong = 0
+                    for vi_tri, url in enumerate(danh_sach_link):
+                        # Cập nhật thanh tiến trình để không bị nhàm chán
+                        thanh_tien_trinh.progress((vi_tri + 1) / tong_so_link)
+                        
+                        noi_dung = doc_website(url)
+                        # Chỉ lấy những link có nội dung thực sự (tránh link ảnh, link rỗng)
+                        if len(noi_dung) > 100: 
+                            id_bai_viet = f"bai_tu_dong_{ngan_tu_ai.count() + 1}"
+                            ngan_tu_ai.add(
+                                documents=[noi_dung],
+                                metadatas=[{"nguon": url}],
+                                ids=[id_bai_viet]
+                            )
+                            so_bai_thanh_cong += 1
+                            
+                    st.success(f"🎉 Hoàn tất! Đã nạp thành công {so_bai_thanh_cong}/{tong_so_link} bài vào Két sắt.")
+                else:
+                    st.error("Không tìm thấy link nào. Vui lòng kiểm tra lại đường dẫn Sitemap.")
+            else:
+                st.warning("Vui lòng nhập link Sitemap.")
         
     elif mat_khau_nhap != "":
         st.error("Sai mật khẩu! Bạn không có quyền truy cập.")
