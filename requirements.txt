@@ -2,3 +2,5 @@ streamlit
 requests
 beautifulsoup4
 google-genai
+chromadb
+pysqlite3-binary
