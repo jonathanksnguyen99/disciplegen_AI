@@ -1,5 +1,7 @@
 import streamlit as st
 import requests
+import time
+import gc
 from bs4 import BeautifulSoup
 from google import genai
 
@@ -95,41 +97,49 @@ with st.sidebar:
                 
         st.divider()
         st.metric(label="📚 Dung lượng não bộ", value=ngan_tu_ai.count())
-        # --- TÍNH NĂNG MỚI: HÚT TỰ ĐỘNG BẰNG SITEMAP ---
+        # --- TÍNH NĂNG MỚI: HÚT TỰ ĐỘNG CÓ ĐIỀU TIẾT ---
         st.markdown("---")
         st.markdown("🚀 **HÚT TOÀN BỘ WEBSITE**")
-        link_sitemap = st.text_input("Link Sitemap (Thường là: https://disciplegen.com/sitemap.xml):")
+        link_sitemap = st.text_input("Link Sitemap (Ví dụ: https://disciplegen.com/sitemap.xml):")
+        
+        # Thêm van điều tiết: Thanh trượt chọn số lượng
+        so_luong_hut = st.slider("Số bài muốn hút đợt này (để tránh nổ RAM):", 1, 50, 10)
         
         if st.button("Kích hoạt Máy hút bụi"):
             if link_sitemap:
                 danh_sach_link = lay_link_tu_sitemap(link_sitemap)
-                tong_so_link = len(danh_sach_link)
                 
-                if tong_so_link > 0:
-                    st.info(f"📍 Đã quét thấy {tong_so_link} đường link. Bắt đầu đọc...")
-                    thanh_tien_trinh = st.progress(0) # Tạo thanh chạy %
+                if len(danh_sach_link) > 0:
+                    # Chỉ lấy đúng số lượng bài đã chọn từ thanh trượt
+                    link_can_hut = danh_sach_link[:so_luong_hut]
+                    tong_so_link = len(link_can_hut)
+                    
+                    st.info(f"📍 Bắt đầu hút {tong_so_link} bài viết...")
+                    thanh_tien_trinh = st.progress(0)
                     
                     so_bai_thanh_cong = 0
-                    for vi_tri, url in enumerate(danh_sach_link):
-                        # Cập nhật thanh tiến trình để không bị nhàm chán
+                    for vi_tri, url in enumerate(link_can_hut):
                         thanh_tien_trinh.progress((vi_tri + 1) / tong_so_link)
                         
                         noi_dung = doc_website(url)
-                        # Chỉ lấy những link có nội dung thực sự (tránh link ảnh, link rỗng)
                         if len(noi_dung) > 100: 
-                            id_bai_viet = f"bai_tu_dong_{ngan_tu_ai.count() + 1}"
+                            id_bai_viet = f"bai_sitemap_{ngan_tu_ai.count() + 1}"
                             ngan_tu_ai.add(
                                 documents=[noi_dung],
                                 metadatas=[{"nguon": url}],
                                 ids=[id_bai_viet]
                             )
                             so_bai_thanh_cong += 1
+                        
+                        # BÍ QUYẾT TRÁNH NỔ RAM CHÍNH LÀ ĐÂY:
+                        time.sleep(2) # Bắt máy chủ nghỉ ngơi 2 giây
+                        gc.collect()  # Ra lệnh dọn rác bộ nhớ ngay lập tức
                             
-                    st.success(f"🎉 Hoàn tất! Đã nạp thành công {so_bai_thanh_cong}/{tong_so_link} bài vào Két sắt.")
+                    st.success(f"🎉 Xong đợt 1! Đã nạp {so_bai_thanh_cong} bài. Bạn có thể kéo thanh trượt để hút đợt tiếp theo.")
                 else:
-                    st.error("Không tìm thấy link nào. Vui lòng kiểm tra lại đường dẫn Sitemap.")
+                    st.error("Không đọc được Sitemap.")
             else:
-                st.warning("Vui lòng nhập link Sitemap.")
+                st.warning("Vui lòng nhập link.")
         
     elif mat_khau_nhap != "":
         st.error("Sai mật khẩu! Bạn không có quyền truy cập.")
