@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from google import genai
 
-API_KEY_CUA_BAN = "AIzaSyCGDW0PkFmQLS_JS0Nhn2CzWtLzCY8pu7M"
+API_KEY_CUA_BAN = st.secrets["GEMINI_API_KEY"]
 
 def doc_website(url):
     try:
